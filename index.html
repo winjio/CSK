@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Jiowin - Lobby</title>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  
+  // 🔥 TUMHARI FIREBASE DETAILS HARDCODED
+  const firebaseConfig = {
+    apiKey: "AIzaSyDcVt5aVb2j_ZqLt2X-fUG4HPXS6nppz80",
+    authDomain: "comparex-cebd8.firebaseapp.com",
+    projectId: "comparex-cebd8",
+    storageBucket: "comparex-cebd8.appspot.com",
+    messagingSenderId: "400802544186",
+    appId: "1:400802544186:web:871d9a951caa6a616f1303"
+  };
+  const app = initializeApp(firebaseConfig);
+  window.db = getFirestore(app);
+  window.dbFuncs = { doc, getDoc, setDoc, updateDoc, onSnapshot };
+</script>
+<style>
+/* (Pura CSS jo maine pehle diya tha, wo yahan aayega. Space ke liye maine ise minify kar diya hai) */
+*{box-sizing:border-box;margin:0;padding:0;user-select:none;font-family:'Segoe UI',sans-serif}
+body{background:#0a0a0a;color:#fff;min-height:100vh;display:flex;justify-content:center;overflow-x:hidden}
+.app{width:100%;max-width:600px;min-height:100vh;background:#111;position:relative;display:flex;flex-direction:column}
+.auth-overlay{position:fixed;inset:0;background:radial-gradient(circle at top,#1a237e,#050510);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}
+.auth-box{background:#111;border:1px solid #333;border-radius:16px;width:100%;max-width:350px;padding:25px}
+.auth-logo{font-weight:900;font-size:24px;color:#fff;text-align:center;margin-bottom:20px}
+.auth-logo span{background:#4caf50;color:#000;padding:2px 6px;border-radius:4px;font-size:16px}
+.auth-tabs{display:flex;background:#1e1e1e;border-radius:10px;margin-bottom:20px;padding:4px}
+.auth-tabs button{flex:1;background:transparent;border:none;color:#aaa;padding:10px;font-weight:bold;cursor:pointer;border-radius:8px}
+.auth-tabs button.active{background:#333;color:#fff}
+.auth-form{display:none;flex-direction:column;gap:12px}
+.auth-form.active{display:flex}
+.auth-input{width:100%;background:#1e1e1e;border:1px solid #333;color:#fff;padding:12px;border-radius:8px;outline:none}
+.auth-input:focus{border-color:#4caf50}
+.auth-btn{background:#4caf50;color:#fff;border:none;padding:14px;border-radius:8px;font-size:16px;font-weight:bold;cursor:pointer;margin-top:10px}
+.auth-msg{font-size:12px;margin-top:10px;text-align:center;color:#e53935}
+.top-bar{background:#1e1e1e;display:flex;justify-content:space-between;align-items:center;padding:10px 15px;border-bottom:1px solid #333;position:sticky;top:0;z-index:50}
+.brand{font-weight:900;font-size:18px;color:#fff;letter-spacing:1px;}
+.brand span{background:#4caf50;color:#000;padding:1px 4px;border-radius:4px;font-size:11px}
+.balance-pill{background:#4caf50;color:#000;padding:4px 10px;border-radius:10px;font-weight:bold;display:flex;gap:8px;font-size:14px;cursor:pointer}
+.page{display:none;flex:1;flex-direction:column;padding-bottom:70px;overflow-y:auto}
+.page.active{display:flex}
+.banner{margin:10px;border-radius:12px;height:120px;background:linear-gradient(135deg,#1a237e,#0d47a1);display:flex;align-items:center;padding:15px;position:relative}
+.banner h2{font-size:20px;color:#ffd700;margin-bottom:5px}
+.claim-btn{padding:6px 12px;border:none;border-radius:6px;background:#ffd700;color:#000;font-weight:bold;margin-top:10px;cursor:pointer}
+.banner-img{position:absolute;right:10px;bottom:5px;font-size:60px;opacity:0.8}
+.category-title{font-size:16px;font-weight:bold;margin:15px;}
+.game-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:0 10px;margin-bottom:20px}
+.game-card{background:#1e1e1e;border-radius:12px;overflow:hidden;text-decoration:none;display:block;border:1px solid #333;position:relative;transition:transform 0.2s}
+.game-card:active{transform:scale(0.96)}
+.game-img{height:100px;display:flex;align-items:center;justify-content:center;font-size:50px}
+.game-info{padding:8px;text-align:center}
+.game-name{font-size:13px;font-weight:bold;color:#fff}
+.bg-7up{background:linear-gradient(135deg,#2e7d32,#1b5e20)}.bg-ab{background:linear-gradient(135deg,#b71c1c,#0d47a1)}.bg-dt{background:linear-gradient(135deg,#c62828,#2e7d32)}.bg-avi{background:linear-gradient(135deg,#000,#b71c1c)}.bg-sic{background:linear-gradient(135deg,#0d5c2c,#004d40)}.bg-rou{background:linear-gradient(135deg,#1b5e20,#0a192f)}.bg-ck{background:linear-gradient(135deg,#0d47a1,#b71c1c)}.bg-bac{background:linear-gradient(135deg,#1a237e,#4a148c)}.bg-fpc{background:linear-gradient(135deg,#b71c1c,#880e4f)}.bg-color{background:linear-gradient(135deg,#1a237e,#0d47a1)}
+.badge{position:absolute;top:5px;right:5px;background:rgba(0,0,0,0.6);color:#ffd700;font-size:9px;font-weight:bold;padding:2px 6px;border-radius:10px;border:1px solid #ffd700;z-index:5}
+.badge-new{background:#e53935;color:#fff;border-color:#e53935}
+.wallet-tabs{display:flex;background:#1e1e1e;margin:15px;border-radius:10px;padding:4px}
+.wallet-tabs button{flex:1;padding:8px;border:none;background:transparent;color:#aaa;font-weight:bold;cursor:pointer;border-radius:8px;font-size:12px}
+.wallet-tabs button.active{background:#333;color:#fff}
+.wallet-content{display:none;padding:0 15px}
+.wallet-content.active{display:block}
+.form-group{background:#1e1e1e;padding:20px;border-radius:12px;border:1px solid #333;margin-bottom:15px}
+.form-group label{display:block;font-size:13px;color:#aaa;margin-bottom:8px}
+.form-input{width:100%;background:#111;border:1px solid #444;color:#fff;padding:12px;border-radius:8px;font-size:16px;margin-bottom:15px;outline:none}
+.submit-btn{width:100%;background:#4caf50;color:#fff;border:none;padding:15px;border-radius:8px;font-size:16px;font-weight:bold;cursor:pointer}
+.submit-btn.withdraw{background:#e53935}
+.payment-methods{display:flex;gap:10px;margin-bottom:15px}
+.method-btn{flex:1;padding:10px;text-align:center;background:#1e1e1e;border:1px solid #444;color:#aaa;border-radius:8px;cursor:pointer;font-weight:bold;transition:0.3s}
+.method-btn.active{background:#4caf50;color:#fff;border-color:#4caf50;box-shadow:0 0 10px rgba(76,175,80,0.4)}
+.refer-card{background:linear-gradient(135deg,#1a237e,#4a148c);padding:25px;border-radius:15px;text-align:center}
+.ref-code{background:rgba(0,0,0,0.3);padding:12px;border:1px dashed #ffd700;border-radius:8px;font-size:20px;font-weight:bold;color:#ffd700;margin:15px 0}
+.copy-btn{background:#ffd700;color:#000;border:none;padding:8px 20px;border-radius:20px;font-weight:bold;cursor:pointer}
+.history-item{background:#111;border:1px solid #333;border-radius:10px;padding:12px;margin-bottom:10px;display:flex;justify-content:space-between}
+.history-left .type{font-size:14px;font-weight:bold;text-transform:capitalize}
+.history-left .date{font-size:11px;color:#888;margin-top:4px}
+.history-right .amount{font-size:16px;font-weight:bold}
+.history-right .amount.deposit{color:#4caf50}.history-right .amount.withdraw{color:#e53935}
+.status-badge{font-size:10px;padding:2px 8px;border-radius:10px;margin-top:5px;display:inline-block}
+.status-pending{background:rgba(255,152,0,0.2);color:#ff9800}
+.status-approved{background:rgba(76,175,80,0.2);color:#4caf50}
+.status-rejected{background:rgba(229,57,53,0.2);color:#e53935}
+.chat-header{background:#1e293b;padding:15px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #333}
+.chat-avatar{width:40px;height:40px;background:#0088cc;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;position:relative}
+.online-dot{position:absolute;bottom:0;right:0;width:10px;height:10px;background:#4caf50;border-radius:50%;border:2px solid #1e293b}
+.chat-info h3{font-size:16px;color:#fff}.chat-info p{font-size:12px;color:#4caf50}
+.chat-messages{flex:1;padding:15px;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
+.message{max-width:85%;padding:10px 15px;border-radius:15px;font-size:14px;line-height:1.4;position:relative}
+.message.bot{background:#1e293b;color:#fff;align-self:flex-start;border-bottom-left-radius:2px}
+.message.user{background:#0088cc;color:#fff;align-self:flex-end;border-bottom-right-radius:2px}
+.message .time{font-size:10px;color:rgba(255,255,255,0.6);margin-top:5px;text-align:right;display:block}
+.bot-card-btn{background:#4caf50;color:#fff;border:none;padding:6px 12px;border-radius:6px;font-weight:bold;cursor:pointer;width:100%;margin-top:5px}
+.typing-indicator{display:none;align-self:flex-start;background:#1e293b;padding:12px 18px;border-radius:15px;border-bottom-left-radius:2px}
+.typing-indicator.show{display:flex;gap:4px}
+.typing-indicator span{width:6px;height:6px;background:#888;border-radius:50%;animation:bounce 1.4s infinite ease-in-out both}
+.typing-indicator span:nth-child(1){animation-delay:-0.32s}.typing-indicator span:nth-child(2){animation-delay:-0.16s}
+@keyframes bounce{0%,80%,100%{transform:scale(0)}40%{transform:scale(1)}}
+.quick-replies{display:flex;gap:8px;padding:10px;overflow-x:auto;background:#1e293b;border-top:1px solid #333;scrollbar-width:none}
+.quick-replies::-webkit-scrollbar{display:none}
+.qr-btn{white-space:nowrap;background:#0f172a;border:1px solid #0088cc;color:#0088cc;padding:6px 12px;border-radius:20px;font-size:12px;cursor:pointer}
+.chat-input-area{background:#1e293b;padding:10px;display:flex;gap:8px;align-items:center;border-top:1px solid #333}
+.attach-btn{background:transparent;border:none;color:#888;font-size:20px;cursor:pointer}
+.chat-input{flex:1;background:#0f172a;border:1px solid #333;color:#fff;padding:10px;border-radius:20px;outline:none}
+.send-btn{width:40px;height:40px;background:#0088cc;border:none;border-radius:50%;color:#fff;cursor:pointer}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;max-width:600px;margin:0 auto;background:#1e1e1e;display:flex;justify-content:space-around;padding:10px 0;border-top:1px solid #333;z-index:100}
+.nav-item{display:flex;flex-direction:column;align-items:center;color:#888;font-size:10px;cursor:pointer}
+.nav-item.active{color:#4caf50}
+.nav-item .icon{font-size:20px;margin-bottom:2px}
+</style>
+</head>
+<body>
+
+<div class="auth-overlay" id="authScreen">
+  <div class="auth-box">
+    <div class="auth-logo">JIO<span>WIN</span></div>
+    <div class="auth-tabs">
+      <button onclick="switchAuthTab('login')" class="active" id="btn-login">Login</button>
+      <button onclick="switchAuthTab('register')" id="btn-reg">Register</button>
+    </div>
+    <form class="auth-form active" id="loginForm" onsubmit="handleLogin(event)">
+      <input type="email" id="loginEmail" class="auth-input" placeholder="Email" required>
+      <input type="password" id="loginPass" class="auth-input" placeholder="Password" required>
+      <button type="submit" class="auth-btn">Login</button>
+    </form>
+    <form class="auth-form" id="registerForm" onsubmit="handleRegister(event)">
+      <input type="text" id="regName" class="auth-input" placeholder="Full Name" required>
+      <input type="email" id="regEmail" class="auth-input" placeholder="Email" required>
+      <input type="password" id="regPass" class="auth-input" placeholder="Password" required>
+      <button type="submit" class="auth-btn">Create Account</button>
+    </form>
+    <div class="auth-msg" id="authMsg"></div>
+  </div>
+</div>
+
+<div class="app" id="app" style="display: none;">
+  <div class="top-bar" style="justify-content: flex-start; gap: 15px;">
+    <div>☰ 🔔</div><div class="brand">JIO<span>WIN</span></div>
+    <div class="balance-pill" onclick="logout()" title="Logout" style="margin-left: auto;"><span id="userBalanceDisplay">₹ 0</span> 🚪</div>
+  </div>
+  <div id="page-home" class="page active">
+    <div style="padding: 10px 15px; font-size: 14px; color: #aaa;">Welcome, <span id="userNameDisplay" style="color: #fff; font-weight: bold;">User</span>!</div>
+    <div class="banner"><div class="banner-text"><h2>Welcome Bonus</h2><p>Get 100% Deposit Bonus up to ₹10,000</p><button class="claim-btn" onclick="switchPage('wallet')">Claim Now</button></div><div class="banner-img">🎁</div></div>
+    <div class="category-title">🔥 Popular Games</div>
+    <div class="game-grid">
+      <a href="games/7updown.html" class="game-card"><div class="badge">HOT</div><div class="game-img bg-7up">🎲</div><div class="game-info"><div class="game-name">7 Up Down</div></div></a>
+      <a href="games/andarbahar.html" class="game-card"><div class="game-img bg-ab">🃏</div><div class="game-info"><div class="game-name">Andar Bahar</div></div></a>
+      <a href="games/dragontiger.html" class="game-card"><div class="game-img bg-dt">🐉</div><div class="game-info"><div class="game-name">Dragon Tiger</div></div></a>
+      <a href="games/aviator.html" class="game-card"><div class="badge badge-new">NEW</div><div class="game-img bg-avi">✈️</div><div class="game-info"><div class="game-name">Aviator</div></div></a>
+      <a href="games/sicbo.html" class="game-card"><div class="game-img bg-sic">🎲</div><div class="game-info"><div class="game-name">Sic Bo</div></div></a>
+      <a href="games/roulette.html" class="game-card"><div class="game-img bg-rou">🎡</div><div class="game-info"><div class="game-name">Roulette</div></div></a>
+      <a href="games/cricket-roulette.html" class="game-card"><div class="badge">IPL</div><div class="game-img bg-ck">🏏</div><div class="game-info"><div class="game-name">Cricket Roulette</div></div></a>
+      <a href="games/baccarat.html" class="game-card"><div class="game-img bg-bac">👑</div><div class="game-info"><div class="game-name">Baccarat</div></div></a>
+      <a href="games/fish-prawn-crab.html" class="game-card"><div class="game-img bg-fpc">🦀</div><div class="game-info"><div class="game-name">Fish-Prawn-Crab</div></div></a>
+      <a href="games/color-prediction.html" class="game-card"><div class="game-img bg-color">🎨</div><div class="game-info"><div class="game-name">Color Prediction</div></div></a>
+    </div>
+  </div>
+  <div id="page-wallet" class="page">
+    <div class="page-header">My Wallet</div>
+    <div class="wallet-tabs"><button onclick="switchWalletTab('deposit')" class="active" id="tab-deposit">Deposit</button><button onclick="switchWalletTab('withdraw')" id="tab-withdraw">Withdraw</button><button onclick="switchWalletTab('history')" id="tab-history">History</button><button onclick="switchWalletTab('refer')" id="tab-refer">Refer</button></div>
+    <div id="content-deposit" class="wallet-content active"><div class="form-group"><label>Amount (Min ₹100)</label><input type="number" id="depositAmount" class="form-input" placeholder="500"><button id="depBtn" class="submit-btn" onclick="processDeposit()">Proceed to Pay</button></div></div>
+    <div id="content-withdraw" class="wallet-content"><div class="form-group"><label>Amount (Min ₹500)</label><input type="number" id="withdrawAmount" class="form-input" placeholder="1000"><div class="payment-methods"><div class="method-btn active" onclick="switchWithdrawMethod('upi')" id="btn-method-upi">UPI</div><div class="method-btn" onclick="switchWithdrawMethod('bank')" id="btn-method-bank">Bank Transfer</div></div><div id="upi-fields"><label>UPI ID</label><input type="text" id="upiId" class="form-input" placeholder="yourname@upi"></div><div id="bank-fields" style="display: none;"><label>Acc Name</label><input type="text" id="accName" class="form-input"><label>Acc No</label><input type="text" id="accNumber" class="form-input"><label>IFSC</label><input type="text" id="ifscCode" class="form-input"></div><button class="submit-btn withdraw" onclick="processWithdraw()">Request Withdrawal</button></div></div>
+    <div id="content-history" class="wallet-content"><div class="form-group"><label>Transaction History</label><div id="historyList"></div></div></div>
+    <div id="content-refer" class="wallet-content"><div class="refer-card"><h3>Refer & Earn ₹100</h3><div class="ref-code" id="refCodeDisplay">LOADING...</div><button class="copy-btn" onclick="copyRefCode()">Copy Code</button></div></div>
+  </div>
+  <div id="page-chat" class="page">
+    <div class="chat-header"><div class="chat-avatar">🤖<div class="online-dot"></div></div><div class="chat-info"><h3>Jiowin Support</h3><p>Live Telegram Bot</p></div></div>
+    <div class="chat-messages" id="chatMessages"></div>
+    <div class="quick-replies"><button class="qr-btn" onclick="quickReply('Check Balance')">💰 Balance</button><button class="qr-btn" onclick="quickReply('Money add nahi hua')">📥 Deposit Issue</button><button class="qr-btn" onclick="quickReply('Withdrawal nahi aaya')">📤 Withdraw Issue</button><button class="qr-btn" onclick="quickReply('Talk to Agent')">👨‍💼 Live Agent</button></div>
+    <div class="chat-input-area"><button class="attach-btn" onclick="attachFile()">📎</button><input type="text" id="chatInput" class="chat-input" placeholder="Type..."><button class="send-btn" onclick="sendMessage()">➤</button></div>
+  </div>
+</div>
+<div class="bottom-nav">
+  <div class="nav-item active" id="nav-home" onclick="switchPage('home')"><span class="icon">🏠</span><span>Home</span></div>
+  <div class="nav-item" id="nav-wallet" onclick="switchPage('wallet')"><span class="icon">💰</span><span>Wallet</span></div>
+  <div class="nav-item" id="nav-chat" onclick="switchPage('chat')"><span class="icon">💬</span><span>Chat</span></div>
+  <div class="nav-item" id="nav-profile" onclick="logout()"><span class="icon">👤</span><span>Logout</span></div>
+</div>
+
+<script>
+// 🔥 SAB KUCH EK FILE ME (Render URL aur Firebase config hardcoded hai)
+const socket = io('https://jio-site.onrender.com'); 
+let currentUser = null;
+let userUnsubscribe = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+  const savedEmail = localStorage.getItem('jiowin_email');
+  if (savedEmail && window.db) {
+    const { doc, onSnapshot } = window.dbFuncs;
+    userUnsubscribe = onSnapshot(doc(window.db, "users", savedEmail), (docSnap) => {
+      if (docSnap.exists()) {
+        currentUser = docSnap.data();
+        document.getElementById('authScreen').style.display = 'none';
+        document.getElementById('app').style.display = 'flex';
+        updateProfileUI();
+        if(currentUser.email) socket.emit('register_user', currentUser.email);
+      } else { localStorage.removeItem('jiowin_email'); location.reload(); }
+    });
+  }
+});
+
+function switchAuthTab(tab) {
+  document.querySelectorAll('.auth-tabs button').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+  if (tab === 'login') { document.getElementById('btn-login').classList.add('active'); document.getElementById('loginForm').classList.add('active'); }
+  else { document.getElementById('btn-reg').classList.add('active'); document.getElementById('registerForm').classList.add('active'); }
+}
+
+async function handleLogin(e) {
+  e.preventDefault();
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  const { doc, getDoc } = window.dbFuncs;
+  const docSnap = await getDoc(doc(window.db, "users", email));
+  if (docSnap.exists() && docSnap.data().password === pass) {
+    localStorage.setItem('jiowin_email', email); location.reload();
+  } else { document.getElementById('authMsg').textContent = 'Invalid credentials.'; }
+}
+
+async function handleRegister(e) {
+  e.preventDefault();
+  const name = document.getElementById('regName').value;
+  const email = document.getElementById('regEmail').value.trim();
+  const pass = document.getElementById('regPass').value;
+  const { doc, getDoc, setDoc } = window.dbFuncs;
+  const docSnap = await getDoc(doc(window.db, "users", email));
+  if (docSnap.exists()) { document.getElementById('authMsg').textContent = 'Email already exists.'; return; }
+  const newUser = { name, email, password: pass, balance: 1000, transactions: [], refCode: 'JW' + Math.floor(1000 + Math.random() * 9000) };
+  await setDoc(doc(window.db, "users", email), newUser);
+  localStorage.setItem('jiowin_email', email); location.reload();
+}
+
+function updateProfileUI() {
+  if (currentUser) {
+    document.getElementById('userNameDisplay').textContent = currentUser.name;
+    document.getElementById('userBalanceDisplay').textContent = '₹ ' + currentUser.balance.toLocaleString();
+    if(typeof renderHistory === 'function') renderHistory();
+  }
+}
+function logout() { if(userUnsubscribe) userUnsubscribe(); localStorage.removeItem('jiowin_email'); location.reload(); }
+
+function switchPage(pageId) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + pageId).classList.add('active');
+  document.getElementById('nav-' + pageId).classList.add('active');
+  if (pageId === 'wallet' && typeof generateReferCode === 'function') generateReferCode();
+}
+
+function switchWalletTab(tabId) {
+  document.querySelectorAll('.wallet-tabs button').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.wallet-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + tabId).classList.add('active');
+  document.getElementById('content-' + tabId).classList.add('active');
+  if (tabId === 'history' && typeof renderHistory === 'function') renderHistory();
+}
+
+if(currentUser && currentUser.email) socket.emit('register_user', currentUser.email);
+socket.on('connect', () => { if(currentUser && currentUser.email) socket.emit('register_user', currentUser.email); });
+socket.on('transaction_approved', (txId) => { alert(`✅ Payment Approved!`); });
+socket.on('transaction_rejected', (txId) => { alert(`❌ Payment Rejected.`); });
+
+let currentWithdrawMethod = 'upi';
+function switchWithdrawMethod(method) {
+  currentWithdrawMethod = method;
+  document.querySelectorAll('.method-btn').forEach(btn => btn.classList.remove('active'));
+  document.getElementById('btn-method-' + method).classList.add('active');
+  if(method === 'upi') { document.getElementById('upi-fields').style.display = 'block'; document.getElementById('bank-fields').style.display = 'none'; }
+  else { document.getElementById('upi-fields').style.display = 'none'; document.getElementById('bank-fields').style.display = 'block'; }
+}
+
+async function processDeposit() {
+  const amount = parseFloat(document.getElementById('depositAmount').value);
+  if (!amount || amount < 100) { alert("Min ₹100"); return; }
+  const btn = document.getElementById('depBtn'); btn.textContent = "Processing..."; btn.disabled = true;
+  const txId = 'DEP' + Math.floor(100000 + Math.random() * 900000);
+  const { doc, updateDoc } = window.dbFuncs;
+  let updatedTxs = currentUser.transactions || [];
+  updatedTxs.unshift({ id: txId, type: 'deposit', amount: amount, status: 'Pending', date: new Date().toLocaleString() });
+  await updateDoc(doc(window.db, "users", currentUser.email), { transactions: updatedTxs });
+  socket.emit('new_transaction', { txId, type: 'deposit', amount, userId: currentUser.email, userName: currentUser.name, method: 'UPI', details: 'N/A' });
+  setTimeout(() => { btn.textContent = "Proceed to Pay"; btn.disabled = false; document.getElementById('depositAmount').value = ''; switchWalletTab('history'); }, 1000);
+}
+
+async function processWithdraw() {
+  const amount = parseFloat(document.getElementById('withdrawAmount').value);
+  if (!amount || amount < 500) { alert("Min ₹500"); return; }
+  if (amount > currentUser.balance) { alert("Insufficient balance!"); return; }
+  let details = '', methodTitle = '';
+  if(currentWithdrawMethod === 'upi') {
+    const upi = document.getElementById('upiId').value.trim();
+    if (!upi.includes('@')) { alert("Invalid UPI ID"); return; }
+    details = `UPI: ${upi}`; methodTitle = 'UPI';
+  } else {
+    const accName = document.getElementById('accName').value.trim(), accNum = document.getElementById('accNumber').value.trim(), ifsc = document.getElementById('ifscCode').value.trim();
+    if (!accName || !accNum || !ifsc) { alert("Fill all bank details"); return; }
+    details = `A/C: ${accNum} | IFSC: ${ifsc} | Name: ${accName}`; methodTitle = 'BANK';
+  }
+  const { doc, updateDoc } = window.dbFuncs;
+  const txId = 'WDR' + Math.floor(100000 + Math.random() * 900000);
+  let updatedTxs = currentUser.transactions || [];
+  updatedTxs.unshift({ id: txId, type: 'withdraw', amount: amount, method: methodTitle, details, status: 'Pending', date: new Date().toLocaleString() });
+  await updateDoc(doc(window.db, "users", currentUser.email), { balance: currentUser.balance - amount, transactions: updatedTxs });
+  socket.emit('new_transaction', { txId, type: 'withdraw', amount, userId: currentUser.email, userName: currentUser.name, method: methodTitle, details: details });
+  document.getElementById('withdrawAmount').value = ''; document.getElementById('upiId').value = '';
+  switchWalletTab('history');
+}
+
+function renderHistory() {
+  const list = document.getElementById('historyList');
+  if (!currentUser.transactions || currentUser.transactions.length === 0) { list.innerHTML = '<p style="color:#888;text-align:center;">No transactions.</p>'; return; }
+  list.innerHTML = currentUser.transactions.map(tx => {
+    const sign = tx.type === 'deposit' ? '+' : '-';
+    return `<div class="history-item"><div class="history-left"><span class="type">${tx.type}</span><span class="date">${tx.date}</span></div><div class="history-right"><span class="amount ${tx.type}">${sign}₹${tx.amount}</span><span class="status-badge status-${tx.status.toLowerCase()}">${tx.status}</span></div></div>`;
+  }).join('');
+}
+function generateReferCode() { if(!currentUser.refCode) { currentUser.refCode = 'JW' + Math.floor(1000 + Math.random() * 9000); } document.getElementById('refCodeDisplay').textContent = currentUser.refCode; }
+function copyRefCode() { navigator.clipboard.writeText(document.getElementById('refCodeDisplay').textContent); alert("Copied!"); }
+
+socket.on('admin_reply', (msg) => { appendMessage(`👨‍💼 <b>Support:</b> ${msg}`, 'bot'); beep(); });
+let isTicketRaised = false;
+function getRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+function sendMessage(customText = null) {
+  const input = document.getElementById('chatInput');
+  const msgText = customText || input.value.trim();
+  if (!msgText) return;
+  appendMessage(msgText, 'user');
+  if(!customText) input.value = '';
+  const lower = msgText.toLowerCase().trim();
+
+  if (lower === 'agent' || lower === 'human') {
+    socket.emit('user_message', { email: currentUser.email, message: msgText });
+    appendMessage("⏳ <i>Connecting to Live Support Agent...</i>", 'bot'); return;
+  }
+
+  showTyping();
+  setTimeout(() => {
+    hideTyping();
+    let reply = "", showTicketBtn = false;
+
+    if (lower.includes('withdraw') || lower.includes('payout')) {
+      reply = getRandom([`<b>Withdrawal Pending? ⏳</b><br>1️⃣ Takes <b>1-24 hours</b>.<br>2️⃣ Sundays may take 48h.<br>3️⃣ If it takes longer, raise a ticket.`, `<b>Withdraw nahi aaya?</b><br>UPI transfers take <b>1 to 24 hours</b>. If status is 'Pending', Admin is verifying it.`]);
+      showTicketBtn = true;
+    } else if (lower.includes('deposit') || lower.includes('add money') || lower.includes('paisa')) {
+      reply = getRandom([`<b>Deposit Not Added? 💸</b><br>1️⃣ UPI takes 5-10 mins.<br>2️⃣ If failed, auto-refund in 3-5 days.<br>3️⃣ Check History.`, `<b>Money add nahi hua?</b><br>Agar bank se paisa cut gaya hai aur wallet me nahi aaya, toh <b>3-5 days</b> me refund aa jayega.`]);
+      showTicketBtn = true;
+    } else if (lower.includes('balance') || lower.includes('wallet')) {
+      reply = `Your current balance is <b>₹${currentUser.balance}</b>. 💰`;
+    } else if (lower.includes('hi') || lower.includes('hello') || lower.includes('hey')) {
+      reply = getRandom([`Hello <b>${currentUser.name}</b>! 👋 How can I help?`, `Hi <b>${currentUser.name}</b>! Kaise hain aap?`]);
+    } else if (lower.includes('bonus') || lower.includes('offer')) {
+      reply = `🎁 We have a <b>100% Welcome Bonus</b> up to ₹10,000! Check Home.`;
+    } else if (lower.includes('game') || lower.includes('khel')) {
+      reply = `🎮 We have 10+ games (Aviator, 7 Up Down, etc). Go to Home!`;
+    } else if (lower.includes('thank') || lower.includes('ok')) {
+      reply = getRandom([`You're welcome! 😊`, `Anytime! 🎰`]);
+    } else {
+      reply = getRandom([`Mujhe ye samajh nahi aaya 🤔. Ask about <b>Deposit</b>, <b>Withdraw</b>, or <b>Games</b>.`, `Sorry, I didn't understand. Click <b>"Live Agent"</b>.`]);
+    }
+
+    if (showTicketBtn && !isTicketRaised) reply += `<br><br><button class="bot-card-btn" style="background:#e53935;" onclick="raiseTicket()">🎫 Raise Support Ticket</button>`;
+    appendMessage(reply, 'bot');
+  }, 1000);
+}
+
+function raiseTicket() {
+  if(isTicketRaised) return;
+  isTicketRaised = true; const ticketId = 'TKT' + Math.floor(100000 + Math.random() * 900000);
+  socket.emit('user_message', { email: currentUser.email, message: `🚨 TICKET RAISED (${ticketId}).` });
+  appendMessage(`⏳ <i>Generating Ticket...</i>`, 'user');
+  setTimeout(() => {
+    appendMessage(`<b>✅ Ticket Created!</b><br>🎫 ID: <b>${ticketId}</b><br>⏱ Reply in 15-30 mins.`, 'bot');
+    showTyping(); setTimeout(() => { hideTyping(); appendMessage(`👨‍💼 <b>Agent Rahul:</b> Hi ${currentUser.name}, I'm checking your issue.`, 'bot'); }, 8000);
+  }, 1500);
+}
+
+function attachFile() { appendMessage("📎 <i>[Screenshot uploaded]</i>", 'user'); socket.emit('user_message', { email: currentUser.email, message: "[Screenshot]" }); }
+function appendMessage(text, sender) {
+  const chatBox = document.getElementById('chatMessages');
+  const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const div = document.createElement('div'); div.className = `message ${sender}`;
+  div.innerHTML = `${text} <span class="time">${time}</span>`; chatBox.appendChild(div); chatBox.scrollTop = chatBox.scrollHeight;
+}
+function showTyping() { const chatBox = document.getElementById('chatMessages'); let ind = document.getElementById('typingIndicator'); if (!ind) { ind = document.createElement('div'); ind.id = 'typingIndicator'; ind.className = 'typing-indicator'; ind.innerHTML = '<span></span><span></span><span></span>'; chatBox.appendChild(ind); } ind.classList.add('show'); chatBox.scrollTop = chatBox.scrollHeight; }
+function hideTyping() { const ind = document.getElementById('typingIndicator'); if(ind) ind.classList.remove('show'); }
+function beep() { try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); const osc = ctx.createOscillator(); osc.frequency.value = 800; osc.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime + 0.1); } catch(e){} }
+document.addEventListener('DOMContentLoaded', () => { document.getElementById('chatInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); }); });
+</script>
+</body>
+</html>
