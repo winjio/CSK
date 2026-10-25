@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>7 Up Down - Jiowin</title>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  
+  const firebaseConfig = {
+    apiKey: "AIzaSyDcVt5aVb2j_ZqLt2X-fUG4HPXS6nppz80",
+    authDomain: "comparex-cebd8.firebaseapp.com",
+    projectId: "comparex-cebd8",
+    storageBucket: "comparex-cebd8.appspot.com",
+    messagingSenderId: "400802544186",
+    appId: "1:400802544186:web:871d9a951caa6a616f1303"
+  };
+  const app = initializeApp(firebaseConfig);
+  window.db = getFirestore(app);
+  window.dbFuncs = { doc, onSnapshot };
+</script>
+<style>
+/* CSS SAME AS BEFORE (Minified) */
+*{box-sizing:border-box;margin:0;padding:0;user-select:none;font-family:'Segoe UI',sans-serif}
+body{background:#0a0a0a;color:#fff;min-height:100vh;display:flex;justify-content:center;overflow:hidden}
+.app{width:100%;max-width:500px;height:100vh;display:flex;flex-direction:column;background:#1a1c1e;position:relative}
+.top-bar{background:#1e1e1e;display:flex;align-items:center;padding:10px 15px;border-bottom:1px solid #333;z-index:50;gap:15px}
+.brand{font-weight:900;font-size:18px;color:#fff;letter-spacing:1px;}
+.brand span{background:#4caf50;color:#000;padding:1px 4px;border-radius:4px;font-size:11px}
+.header{background:#2c1e16;padding:5px;text-align:center;font-size:10px;color:#d4c9b8;border-bottom:1px solid #4a3b2c}
+.header .rates{color:#ff9800;font-weight:bold}
+.history-strip{display:flex;justify-content:space-between;background:#1e130c;padding:4px 6px;gap:2px}
+.history-item{display:flex;flex-direction:column;align-items:center;font-size:9px;flex:1}
+.hist-dice{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#fff;padding:1px;border-radius:2px;margin-bottom:2px}
+.hist-dice.red{background:#ffcccc}.hist-dice.blue{background:#ccddff}
+.hist-dot{width:4px;height:4px;background:#000;border-radius:50%}
+.hist-num{color:#aaa}.hist-stars{color:#ffd700;font-size:6px;letter-spacing:-1px}
+.main-area{flex:1;position:relative;background:radial-gradient(ellipse at center, #2e8b57 0%, #1e5c36 70%, #0d2e19 100%);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.side-players{position:absolute;left:5px;bottom:10px;display:flex;flex-direction:column;gap:12px;z-index:10}
+.player{display:flex;align-items:center;gap:4px}
+.player-avatar{width:36px;height:36px;border-radius:50%;border:2px solid #ffd700;background:#333;position:relative;overflow:hidden}
+.player-avatar img{width:100%;height:100%;object-fit:cover}
+.player-vip{position:absolute;bottom:-4px;right:-4px;background:#ffd700;color:#000;font-size:8px;font-weight:bold;padding:1px 3px;border-radius:4px;border:1px solid #fff}
+.player-info{display:flex;flex-direction:column}
+.player-info .coins{font-size:10px;color:#ffd700;font-weight:bold;text-shadow:1px 1px 2px #000}
+.player-info .bet{background:rgba(255,255,255,0.9);color:#000;font-size:9px;padding:1px 4px;border-radius:8px;font-weight:bold;margin-top:2px;text-align:center}
+.dome-container{position:relative;width:220px;height:140px;display:flex;align-items:flex-end;justify-content:center;margin-top:-40px}
+.dome-glass{position:absolute;inset:0;border-radius:110px 110px 20px 20px;background:linear-gradient(135deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.05) 50%);border:2px solid rgba(255,255,255,0.3);border-bottom:4px solid #555;z-index:5;pointer-events:none}
+.dome-base{position:absolute;bottom:0;width:200px;height:30px;background:linear-gradient(180deg,#555,#222);border-radius:50%;z-index:4}
+.dice-wrap{position:relative;z-index:3;display:flex;gap:15px;margin-bottom:25px}
+.dice{width:50px;height:50px;background:#fff;border-radius:8px;box-shadow:2px 5px 15px rgba(0,0,0,0.5);display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:6px}
+.dot{background:#d32f2f;border-radius:50%;width:10px;height:10px;margin:auto}
+.dice.rolling{animation:shakeDice 0.15s infinite}
+@keyframes shakeDice{0%{transform:translate(0,0)}25%{transform:translate(-3px,2px) rotate(-5deg)}50%{transform:translate(3px,-2px) rotate(5deg)}100%{transform:translate(0,0)}}
+.timer-circle{position:absolute;right:20px;top:50%;transform:translateY(-50%);width:50px;height:50px;border-radius:50%;background:conic-gradient(#ffd700 0%, #333 0%);display:flex;align-items:center;justify-content:center;z-index:10}
+.timer-inner{width:44px;height:44px;background:#111;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:bold;color:#ffd700;border:1px solid #ffd700}
+.sub-header{background:#3e2723;display:flex;justify-content:space-between;padding:4px 10px;font-size:11px;color:#d4c9b8}
+.table-section{padding:4px;background:#1a1c1e;display:flex;flex-direction:column;gap:4px}
+.row-main{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px}
+.zone{border-radius:4px;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;overflow:hidden}
+.zone h2{font-size:28px;line-height:1;margin-bottom:2px;text-shadow:1px 1px 2px #000}
+.zone .odds{font-size:12px;color:#e0e0e0;background:rgba(0,0,0,0.3);padding:1px 8px;border-radius:10px}
+.zone-down{background:linear-gradient(180deg,#4caf50,#2e7d32);border:1px solid #81c784}
+.zone-seven{background:linear-gradient(180deg,#2196f3,#1565c0);border:1px solid #64b5f6}
+.zone-up{background:linear-gradient(180deg,#f44336,#c62828);border:1px solid #e57373}
+.row-exact{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:2px}
+.exact-zone{background:linear-gradient(180deg,#2e7d32,#1b5e20);border:1px solid #4caf50;height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer}
+.exact-zone h3{font-size:22px;color:#a5d6a7}.exact-zone .odds{font-size:10px;color:#81c784}
+.chip-stack{position:absolute;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;color:#fff;border:2px dashed #fff;z-index:10}
+.chip-stack.c10{background:#888}.chip-stack.c50{background:#e53935}.chip-stack.c100{background:#43a047}
+.bottom-bar{background:#1e130c;padding:8px 10px;display:flex;align-items:center;justify-content:space-between}
+.user-profile{display:flex;align-items:center;gap:8px}
+.user-avatar{width:44px;height:44px;border-radius:50%;border:2px solid #ff9800;overflow:hidden}
+.user-avatar img{width:100%;height:100%}
+.user-details .bal{font-size:14px;color:#ffd700;font-weight:bold}
+.bet-controls{display:flex;gap:6px;align-items:center}
+.action-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-size:10px;cursor:pointer;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.1)}
+.chip-selector{width:50px;height:50px;border-radius:50%;background:#fff;border:4px solid #ffd700;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:bold;color:#000;cursor:pointer}
+.result-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.7);z-index:100;display:none;flex-direction:column;align-items:center;justify-content:center}
+.result-overlay.show{display:flex}
+.result-text{font-size:40px;font-weight:bold;color:#4caf50;margin-bottom:10px}
+.result-amount{font-size:24px;color:#ffd700}
+
+/* LIVE USERS & CHIPS */
+.live-users-container { display: flex; align-items: center; gap: 5px; background: rgba(0,0,0,0.6); padding: 4px 10px 4px 4px; border-radius: 20px; position: absolute; top: 60px; left: 10px; z-index: 100; border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+.live-avatars { display: flex; }
+.live-avatars img { width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid #fff; margin-left: -8px; object-fit: cover; }
+.live-avatars img:first-child { margin-left: 0; }
+.live-count { font-size: 10px; font-weight: bold; color: #4caf50; display: flex; align-items: center; gap: 3px; }
+.live-count::before { content: ''; display: block; width: 6px; height: 6px; background: #4caf50; border-radius: 50%; animation: pulseGreen 1.5s infinite; }
+@keyframes pulseGreen { 0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); } 70% { box-shadow: 0 0 0 6px rgba(76, 175, 80, 0); } 100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); } }
+.fake-chip { position: absolute; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: bold; color: #fff; border: 2px dashed #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.8); z-index: 50; pointer-events: none; animation: dropChip 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+.fake-chip.c10 { background: #888; } .fake-chip.c50 { background: #e53935; } .fake-chip.c100 { background: #43a047; } .fake-chip.c500 { background: #fdd835; color: #000; }
+@keyframes dropChip { 0% { transform: translateY(-30px) scale(1.5); opacity: 0; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
+.live-feed-toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); border: 1px solid #ffd700; padding: 6px 15px; border-radius: 20px; font-size: 11px; color: #fff; z-index: 999; display: flex; align-items: center; gap: 8px; animation: slideUp 0.3s ease, fadeOut 0.3s ease 2.5s forwards; pointer-events: none; }
+.live-feed-toast img { width: 20px; height: 20px; border-radius: 50%; }
+.live-feed-toast b { color: #ffd700; }
+@keyframes slideUp { from { bottom: 50px; opacity: 0; } to { bottom: 80px; opacity: 1; } }
+@keyframes fadeOut { to { opacity: 0; transform: translate(-50%, 10px); } }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top-bar">
+    <div>☰ 🔔</div>
+    <div class="brand">JIO<span>WIN</span></div>
+  </div>
+
+  <div class="live-users-container" id="liveUsersPanel"></div>
+
+  <div class="header"><span class="rates">2~6 45% | 8~12 39% | 7 16%</span> Calculated from last 100 rounds.</div>
+  <div class="history-strip" id="historyStrip"></div>
+  
+  <div class="main-area">
+    <div class="side-players">
+      <div class="player"><div class="player-avatar"><img src="https://i.pravatar.cc/100?img=5"><div class="player-vip">9512</div></div><div class="player-info"><span class="coins">🪙 4,376</span></div></div>
+      <div class="player"><div class="player-avatar"><img src="https://i.pravatar.cc/100?img=12"><div class="player-vip">1474</div></div><div class="player-info"><span class="coins">🪙 1,929</span><span class="bet">20</span></div></div>
+    </div>
+    <div class="dome-container"><div class="dome-glass"></div><div class="dome-base"></div><div class="dice-wrap"><div class="dice" id="dice1"></div><div class="dice" id="dice2"></div></div></div>
+    <div class="timer-circle" id="timerCircle"><div class="timer-inner" id="timerText">5</div></div>
+  </div>
+
+  <div class="sub-header"><span>⚙️ 05</span><span>Roadmap ▼</span><span>▲ Min 10 Max 200</span></div>
+  
+  <div class="table-section">
+    <div class="row-main">
+      <div class="zone zone-down" onclick="placeBet('down', this)"><h2>2 - 6</h2><div class="odds">1:1</div></div>
+      <div class="zone zone-seven" onclick="placeBet('seven', this)"><h2>7</h2><div class="odds">1:4</div></div>
+      <div class="zone zone-up" onclick="placeBet('up', this)"><h2>8 - 12</h2><div class="odds">1:1</div></div>
+    </div>
+    <div class="row-exact">
+      <div class="exact-zone" onclick="placeBet('2', this)"><h3>2</h3><div class="odds">1:26</div></div><div class="exact-zone" onclick="placeBet('3', this)"><h3>3</h3><div class="odds">1:12</div></div><div class="exact-zone" onclick="placeBet('4', this)"><h3>4</h3><div class="odds">1:8</div></div><div class="exact-zone" onclick="placeBet('5', this)"><h3>5</h3><div class="odds">1:6</div></div><div class="exact-zone" onclick="placeBet('6', this)"><h3>6</h3><div class="odds">1:5</div></div>
+    </div>
+    <div class="row-exact">
+      <div class="exact-zone" onclick="placeBet('8', this)"><h3>8</h3><div class="odds">1:5</div></div><div class="exact-zone" onclick="placeBet('9', this)"><h3>9</h3><div class="odds">1:6</div></div><div class="exact-zone" onclick="placeBet('10', this)"><h3>10</h3><div class="odds">1:8</div></div><div class="exact-zone" onclick="placeBet('11', this)"><h3>11</h3><div class="odds">1:12</div></div><div class="exact-zone" onclick="placeBet('12', this)"><h3>12</h3><div class="odds">1:26</div></div>
+    </div>
+  </div>
+  
+  <div class="bottom-bar">
+    <div class="user-profile"><div class="user-avatar"><img src="https://i.pravatar.cc/100?img=9"></div><div class="user-details"><span class="bal">Bal ₹<span id="balanceUI">0</span></span></div></div>
+    <div class="bet-controls">
+      <div class="action-btn" onclick="againBet()">🔄</div><div class="action-btn" onclick="doubleBet()">×2</div>
+      <div class="chip-selector" id="chipBtn" onclick="changeChip()"><span id="chipValueUI">10</span></div>
+      <div class="action-btn" onclick="undoBet()">↩️</div><div class="action-btn" onclick="clearBet()" style="color:#ff5252">❌</div>
+    </div>
+  </div>
+  
+  <div class="result-overlay" id="resultOverlay"><div class="result-text" id="resultText">WIN!</div><div class="result-amount" id="resultAmt">+0</div></div>
+</div>
+
+<script>
+// 🔥 FIREBASE SYNC
+const email = localStorage.getItem('jiowin_email');
+let currentUser = { balance: 0 };
+let balance = 0;
+
+if(email && window.dbFuncs) {
+    const { doc, onSnapshot } = window.dbFuncs;
+    onSnapshot(doc(window.db, "users", email), (snap) => {
+        if(snap.exists()) {
+            currentUser = snap.data();
+            balance = currentUser.balance;
+            if(typeof updateUI === 'function') updateUI();
+        }
+    });
+}
+
+const socket = io('https://jio-site.onrender.com');
+socket.on('connect', () => { if(email) socket.emit('register_user', email); });
+socket.on('transaction_approved', (txId) => { alert(`✅ Deposit Approved! Balance will update automatically.`); });
+
+// 🔥 LIVE USERS & FAKE CHIPS
+const fakeUsers = [
+  { name: 'Rahul', avatar: 'https://i.pravatar.cc/100?img=1' }, { name: 'Priya', avatar: 'https://i.pravatar.cc/100?img=5' },
+  { name: 'Amit', avatar: 'https://i.pravatar.cc/100?img=11' }, { name: 'Sneha', avatar: 'https://i.pravatar.cc/100?img=9' },
+  { name: 'Vikram', avatar: 'https://i.pravatar.cc/100?img=12' }, { name: 'Anjali', avatar: 'https://i.pravatar.cc/100?img=10' }
+];
+
+document.addEventListener('DOMContentLoaded', () => {
+  const usersPanel = document.getElementById('liveUsersPanel');
+  let avatarsHTML = '<div class="live-avatars">';
+  for(let i=0; i<3; i++) avatarsHTML += `<img src="${fakeUsers[i].avatar}">`;
+  avatarsHTML += '</div>';
+  usersPanel.innerHTML = `${avatarsHTML}<div class="live-count">${Math.floor(Math.random() * 40) + 60} Online</div>`;
+
+  setInterval(() => {
+    if(isRolling) return; 
+    const user = fakeUsers[Math.floor(Math.random() * fakeUsers.length)];
+    const amounts = [10, 50, 100, 500];
+    const betAmt = amounts[Math.floor(Math.random() * amounts.length)];
+    const betZones = document.querySelectorAll('.zone, .exact-zone');
+    if(betZones.length > 0) {
+      const randomZone = betZones[Math.floor(Math.random() * betZones.length)];
+      const chip = document.createElement('div'); 
+      chip.className = `fake-chip c${betAmt}`; 
+      chip.textContent = betAmt;
+      randomZone.style.position = 'relative'; 
+      randomZone.appendChild(chip);
+
+      const toast = document.createElement('div'); 
+      toast.className = 'live-feed-toast';
+      toast.innerHTML = `<img src="${user.avatar}"> <span><b>${user.name}</b> bet ₹${betAmt}</span>`;
+      document.body.appendChild(toast); 
+      setTimeout(() => toast.remove(), 3000);
+    }
+  }, Math.random() * 2000 + 1500);
+
+  setInterval(() => { document.querySelectorAll('.fake-chip').forEach(c => c.remove()); }, 20000);
+});
+
+// 🔥 GAME LOGIC
+const CHIPS=[10,50,100,500], ODDS={'2':27,'12':27,'3':13,'11':13,'4':9,'10':9,'5':7,'9':7,'6':6,'8':6,'down':2,'up':2,'seven':5};
+let currentChipIndex=0, userBets={}, isRolling=false, timerInterval, countdown=5, lastBet={};
+
+function updateUI(){ 
+    document.getElementById('balanceUI').textContent=balance.toLocaleString(); 
+    document.getElementById('chipValueUI').textContent=CHIPS[currentChipIndex]; 
+    document.querySelectorAll('.chip-stack').forEach(el=>el.remove()); 
+    for(const [zone,amt] of Object.entries(userBets)){ 
+        const el=document.querySelector(`[onclick="placeBet('${zone}', this)"]`); 
+        if(el){ const chip=document.createElement('div'); chip.className=`chip-stack c${amt>=100?100:amt>=50?50:10}`; chip.textContent=amt; el.style.position='relative'; el.appendChild(chip); } 
+    } 
+}
+function changeChip(){ currentChipIndex=(currentChipIndex+1)%CHIPS.length; updateUI(); beep(600,0.05); }
+function placeBet(zone,el){ if(isRolling) return; const amt=CHIPS[currentChipIndex]; if(balance<amt){ beep(200,0.1); return; } balance-=amt; userBets[zone]=(userBets[zone]||0)+amt; updateUI(); beep(800,0.05); el.style.transform='scale(0.9)'; setTimeout(()=>el.style.transform='scale(1)',100); if(!isRolling && !timerInterval) startGame(); }
+function clearBet(){ if(isRolling) return; balance+=Object.values(userBets).reduce((a,b)=>a+b,0); userBets={}; updateUI(); }
+function undoBet(){ if(isRolling) return; const zones=Object.keys(userBets); if(!zones.length) return; const l=zones[zones.length-1]; balance+=userBets[l]; delete userBets[l]; updateUI(); }
+function doubleBet(){ if(isRolling) return; const t=Object.values(userBets).reduce((a,b)=>a+b,0); if(t===0 || balance<t) return; balance-=t; for(const z in userBets) userBets[z]*=2; updateUI(); }
+function againBet(){ if(isRolling) return; clearBet(); const t=Object.values(lastBet).reduce((a,b)=>a+b,0); if(t===0 || balance<t) return; balance-=t; userBets={...lastBet}; updateUI(); }
+
+function startGame(){ 
+    if(isRolling) return; 
+    countdown=5; 
+    timerInterval=setInterval(()=>{ 
+        countdown-=0.1; 
+        if(countdown<=0){ 
+            clearInterval(timerInterval); 
+            rollDice(); 
+        } else { 
+            document.getElementById('timerCircle').style.background=`conic-gradient(#ffd700 ${(countdown/5)*100}%, #333 ${(countdown/5)*100}%)`; 
+            document.getElementById('timerText').textContent=Math.ceil(countdown); 
+        } 
+    },100); 
+}
+
+function rollDice(){ 
+    isRolling=true; 
+    lastBet={...userBets}; 
+    const d1=document.getElementById('dice1'),d2=document.getElementById('dice2'); 
+    d1.classList.add('rolling'); d2.classList.add('rolling'); 
+    let ticks=0; 
+    const iv=setInterval(()=>{ 
+        drawDice(d1,Math.floor(Math.random()*6)+1); 
+        drawDice(d2,Math.floor(Math.random()*6)+1); 
+        beep(400+Math.random()*200,0.03); 
+        if(++ticks>15) clearInterval(iv); 
+    },80); 
+    setTimeout(()=>{ 
+        d1.classList.remove('rolling'); d2.classList.remove('rolling'); 
+        const a=Math.floor(Math.random()*6)+1,b=Math.floor(Math.random()*6)+1,sum=a+b; 
+        drawDice(d1,a); drawDice(d2,b); beep(800,0.2); 
+        setTimeout(()=>evaluateRound(sum,a,b),500); 
+    },1500); 
+}
+
+function evaluateRound(sum,a,b){ 
+    isRolling=false; 
+    let winAmount=0,hasBet=Object.keys(userBets).length>0; 
+    for(const [zone,betAmt] of Object.entries(userBets)){ 
+        let win=false; 
+        if(zone==='down'&&sum>=2&&sum<=6) win=true; 
+        else if(zone==='up'&&sum>=8&&sum<=12) win=true; 
+        else if(zone==='seven'&&sum===7) win=true; 
+        else if(zone===String(sum)) win=true; 
+        if(a===b&&(zone==='up'||zone==='down')) win=false; 
+        if(win) winAmount+=betAmt*ODDS[zone]; 
+    } 
+    if(hasBet){ 
+        if(winAmount>0){ 
+            balance+=winAmount; 
+            showResult('WIN',winAmount-Object.values(userBets).reduce((a,b)=>a+b,0)); 
+            playWinSound(); 
+        } else { 
+            showResult('LOSE',-Object.values(userBets).reduce((a,b)=>a+b,0)); 
+            beep(200,0.3); 
+        } 
+    } 
+    userBets={}; 
+    addToHistory(sum); 
+    updateUI(); 
+    setTimeout(()=>{ 
+        document.getElementById('resultOverlay').classList.remove('show'); 
+        startGame(); 
+    },2000); 
+}
+
+function drawDice(el,num){ 
+    const p={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]}; 
+    el.innerHTML=''; 
+    for(let i=0;i<9;i++){ 
+        const div=document.createElement('div'); 
+        if(p[num].includes(i)) div.className='dot'; 
+        el.appendChild(div); 
+    } 
+}
+
+function addToHistory(sum){ 
+    const strip=document.getElementById('historyStrip'),item=document.createElement('div'); 
+    item.className='history-item'; 
+    let c=sum===7?'':(sum<7?'blue':'red'),dots=''; 
+    for(let i=0;i<2;i++){ 
+        dots+=`<div class="hist-dice ${c}">`; 
+        for(let j=0;j<4;j++) dots+=Math.random()>0.5?'<div class="hist-dot"></div>':'<div></div>'; 
+        dots+=`</div>`; 
+    } 
+    item.innerHTML=`<div class="hist-stars">⭐⭐⭐</div><div style="display:flex;gap:1px;margin-bottom:1px">${dots}</div><div class="hist-num">${sum}</div>`; 
+    strip.appendChild(item); 
+    if(strip.children.length>10) strip.removeChild(strip.firstChild); 
+}
+
+function showResult(type,amount){ 
+    const o=document.getElementById('resultOverlay'),t=document.getElementById('resultText'),a=document.getElementById('resultAmt'); 
+    t.textContent=type; t.style.color=type==='WIN'?'#4caf50':'#f44336'; a.textContent=(amount>0?'+':'')+amount; o.classList.add('show'); 
+}
+
+let audioCtx; function beep(freq,dur,type='sine',vol=0.1){ try{ if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)(); const o=audioCtx.createOscillator(),g=audioCtx.createGain(); o.type=type; o.frequency.value=freq; g.gain.setValueAtTime(vol,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur); o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+dur); }catch(e){} }
+function playWinSound(){ [523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,0.2,'triangle',0.1),i*100)); }
+window.onload=()=>{ for(let i=0;i<10;i++) addToHistory(7); updateBalance(); startGame(); };
+function updateBalance(){ document.getElementById('balanceUI').textContent=balance.toLocaleString(); }
+</script>
+</body>
+</html>
