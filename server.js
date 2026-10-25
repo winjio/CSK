@@ -9,10 +9,20 @@ const path = require('path');
 const app = express();
 app.use(cors());
 
-// 🔥 YE LINES HTML/CSS/JS LOAD KAREGI (Cannot GET / FIX)
+// 🔥 1. STATIC FILES (HTML/CSS/JS serve karne ke liye)
 app.use(express.static(__dirname)); 
+
+// 🔥 2. EXPLICIT ROUTE FOR HOME PAGE
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    const filePath = path.join(__dirname, 'index.html');
+    console.log("Looking for index.html at:", filePath); // Render logs me dikhega
+    
+    res.sendFile(filePath, (err) => {
+        if (err) {
+            console.error("Error sending file:", err);
+            res.status(500).send("Index.html not found. Please check folder structure.");
+        }
+    });
 });
 
 const server = http.createServer(app);
@@ -36,7 +46,6 @@ const serviceAccount = {
 admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
 const db = admin.firestore();
 
-// ⚠️ TELEGRAM SETUP (Render ke environment variables se aayega)
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || 'YOUR_BOT_TOKEN_HERE'; 
 const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID || 'YOUR_CHAT_ID_HERE'; 
 const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
@@ -44,24 +53,15 @@ const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
 const userSockets = {}; 
 
 io.on('connection', (socket) => {
-    socket.on('register_user', (email) => { 
-        if(email) userSockets[email] = socket.id; 
-    });
-
-    // LIVE CHAT
+    socket.on('register_user', (email) => { if(email) userSockets[email] = socket.id; });
     socket.on('user_message', (data) => {
         const telegramMsg = `👤 *User:* ${data.email}\n💬 *Message:* ${data.message}\n\n👉 Reply to answer back.`;
         bot.sendMessage(ADMIN_CHAT_ID, telegramMsg, { parse_mode: 'Markdown' }).then((sentMsg) => {
-            bot.onReplyToMessage(ADMIN_CHAT_ID, sentMsg.message_id, (replyMsg) => { 
-                socket.emit('admin_reply', replyMsg.text); 
-            });
+            bot.onReplyToMessage(ADMIN_CHAT_ID, sentMsg.message_id, (replyMsg) => { socket.emit('admin_reply', replyMsg.text); });
         }).catch(err => console.log("TG Error:", err.message));
     });
-
-    // NEW TRANSACTION (Deposit/Withdraw)
     socket.on('new_transaction', async (data) => {
         const { txId, type, amount, userId, userName, method, details } = data;
-        
         try {
             const userRef = db.collection('users').doc(userId);
             const userDoc = await userRef.get();
@@ -72,49 +72,33 @@ io.on('connection', (socket) => {
                 await userRef.update({ transactions: txs });
             }
         } catch(e) { console.log("Firestore Error:", e); }
-
         const text = `🚨 *NEW ${type.toUpperCase()}* 🚨\n\n🆔 *Order ID:* \`${txId}\`\n👤 *User:* ${userId}\n💰 *Amount:* ₹${amount}\n` + (type === 'withdraw' ? `💳 *Method:* ${method}\n📝 *Details:* ${details}\n` : '') + `\n👇 Verify:`;
-        
-        const keyboard = { 
-            reply_markup: { 
-                inline_keyboard: [[ 
-                    { text: '✅ Approve', callback_data: `approve_${txId}_${userId}` }, 
-                    { text: '❌ Reject', callback_data: `reject_${txId}_${userId}` } 
-                ]] 
-            } 
-        };
+        const keyboard = { reply_markup: { inline_keyboard: [[ { text: '✅ Approve', callback_data: `approve_${txId}_${userId}` }, { text: '❌ Reject', callback_data: `reject_${txId}_${userId}` } ]] } };
         bot.sendMessage(ADMIN_CHAT_ID, text, { parse_mode: 'Markdown', ...keyboard });
     });
 });
 
-// ADMIN TELEGRAM BUTTON CLICK (Approve/Reject)
 bot.on('callback_query', async (query) => {
     const data = query.data.split('_');
     const action = data[0]; const txId = data[1]; const userId = data[2];
-
     const userRef = db.collection('users').doc(userId);
     const userDoc = await userRef.get();
     if (!userDoc.exists) return;
-    
     let userData = userDoc.data();
     let txs = userData.transactions || [];
     const txIndex = txs.findIndex(t => t.id === txId);
     if (txIndex === -1) return;
-
     if(action === 'approve') {
         txs[txIndex].status = 'Approved';
         if (txs[txIndex].type === 'deposit') userData.balance += txs[txIndex].amount;
         await userRef.update({ balance: userData.balance, transactions: txs });
-        
         bot.editMessageText(`✅ *APPROVED*\nOrder ID: \`${txId}\`\nUser: ${userId}`, { chat_id: query.message.chat.id, message_id: query.message.message_id, parse_mode: 'Markdown' });
     } else {
         txs[txIndex].status = 'Rejected';
-        if(txs[txIndex].type === 'withdraw') userData.balance += txs[txIndex].amount; // Refund
+        if(txs[txIndex].type === 'withdraw') userData.balance += txs[txIndex].amount;
         await userRef.update({ balance: userData.balance, transactions: txs });
-
         bot.editMessageText(`❌ *REJECTED*\nOrder ID: \`${txId}\`\nUser: ${userId}`, { chat_id: query.message.chat.id, message_id: query.message.message_id, parse_mode: 'Markdown' });
     }
-    
     const socketId = userSockets[userId];
     if(socketId) io.to(socketId).emit(`transaction_${action}d`, txId);
     bot.answerCallbackQuery(query.id);
