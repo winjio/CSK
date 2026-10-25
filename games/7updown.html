@@ -7,8 +7,9 @@
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  import { getFirestore, doc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
   
+  // 🔥 TUMHARI FIREBASE DETAILS
   const firebaseConfig = {
     apiKey: "AIzaSyDcVt5aVb2j_ZqLt2X-fUG4HPXS6nppz80",
     authDomain: "comparex-cebd8.firebaseapp.com",
@@ -19,15 +20,14 @@
   };
   const app = initializeApp(firebaseConfig);
   window.db = getFirestore(app);
-  window.dbFuncs = { doc, onSnapshot };
+  window.dbFuncs = { doc, onSnapshot, getDoc };
 </script>
 <style>
-/* CSS SAME AS BEFORE (Minified) */
 *{box-sizing:border-box;margin:0;padding:0;user-select:none;font-family:'Segoe UI',sans-serif}
 body{background:#0a0a0a;color:#fff;min-height:100vh;display:flex;justify-content:center;overflow:hidden}
 .app{width:100%;max-width:500px;height:100vh;display:flex;flex-direction:column;background:#1a1c1e;position:relative}
-.top-bar{background:#1e1e1e;display:flex;align-items:center;padding:10px 15px;border-bottom:1px solid #333;z-index:50;gap:15px}
-.brand{font-weight:900;font-size:18px;color:#fff;letter-spacing:1px;}
+.top-bar{background:#1e1e1e;display:flex;align-items:center;padding:10px 15px;border-bottom:1px solid #4333;z-index:50;gap:c15px}
+af.brand{font-weight50:900;font-size:18px;;color:#fff;letter-spheightacing:1px;}
 .brand span{background:#4caf50;color:#000;padding:1px 4px;border-radius:4px;font-size:11px}
 .header{background:#2c1e16;padding:5px;text-align:center;font-size:10px;color:#d4c9b8;border-bottom:1px solid #4a3b2c}
 .header .rates{color:#ff9800;font-weight:bold}
@@ -66,7 +66,7 @@ body{background:#0a0a0a;color:#fff;min-height:100vh;display:flex;justify-content
 .zone-seven{background:linear-gradient(180deg,#2196f3,#1565c0);border:1px solid #64b5f6}
 .zone-up{background:linear-gradient(180deg,#f44336,#c62828);border:1px solid #e57373}
 .row-exact{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:2px}
-.exact-zone{background:linear-gradient(180deg,#2e7d32,#1b5e20);border:1px solid #4caf50;height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer}
+.exact-zone{background:linear-gradient(180deg,#2e7d32,#1b5e20);border:1px solid #:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer}
 .exact-zone h3{font-size:22px;color:#a5d6a7}.exact-zone .odds{font-size:10px;color:#81c784}
 .chip-stack{position:absolute;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;color:#fff;border:2px dashed #fff;z-index:10}
 .chip-stack.c10{background:#888}.chip-stack.c50{background:#e53935}.chip-stack.c100{background:#43a047}
@@ -83,7 +83,7 @@ body{background:#0a0a0a;color:#fff;min-height:100vh;display:flex;justify-content
 .result-text{font-size:40px;font-weight:bold;color:#4caf50;margin-bottom:10px}
 .result-amount{font-size:24px;color:#ffd700}
 
-/* LIVE USERS & CHIPS */
+/* LIVE USERS & FAKE CHIPS */
 .live-users-container { display: flex; align-items: center; gap: 5px; background: rgba(0,0,0,0.6); padding: 4px 10px 4px 4px; border-radius: 20px; position: absolute; top: 60px; left: 10px; z-index: 100; border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
 .live-avatars { display: flex; }
 .live-avatars img { width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid #fff; margin-left: -8px; object-fit: cover; }
@@ -106,6 +106,7 @@ body{background:#0a0a0a;color:#fff;min-height:100vh;display:flex;justify-content
   <div class="top-bar">
     <div>☰ 🔔</div>
     <div class="brand">JIO<span>WIN</span></div>
+    <div style="margin-left:auto;color:#ffd700;font-weight:bold;">₹ <span id="balanceUI">0</span></div>
   </div>
 
   <div class="live-users-container" id="liveUsersPanel"></div>
@@ -139,7 +140,8 @@ body{background:#0a0a0a;color:#fff;min-height:100vh;display:flex;justify-content
   </div>
   
   <div class="bottom-bar">
-    <div class="user-profile"><div class="user-avatar"><img src="https://i.pravatar.cc/100?img=9"></div><div class="user-details"><span class="bal">Bal ₹<span id="balanceUI">0</span></span></div></div>
+    <!-- 🔥 YAHAN ID FIX KI HAI (balanceUI2) -->
+    <div class="user-profile"><div class="user-avatar"><img src="https://i.pravatar.cc/100?img=9"></div><div class="user-details"><span class="bal">Bal ₹<span id="balanceUI2">0</span></span></div></div>
     <div class="bet-controls">
       <div class="action-btn" onclick="againBet()">🔄</div><div class="action-btn" onclick="doubleBet()">×2</div>
       <div class="chip-selector" id="chipBtn" onclick="changeChip()"><span id="chipValueUI">10</span></div>
@@ -151,7 +153,7 @@ body{background:#0a0a0a;color:#fff;min-height:100vh;display:flex;justify-content
 </div>
 
 <script>
-// 🔥 FIREBASE SYNC
+// 🔥 1. FIREBASE SYNC
 const email = localStorage.getItem('jiowin_email');
 let currentUser = { balance: 0 };
 let balance = 0;
@@ -167,11 +169,25 @@ if(email && window.dbFuncs) {
     });
 }
 
+// 🔥 2. SOCKET SYNC (TELEGRAM APPROVAL)
 const socket = io('https://jio-site.onrender.com');
 socket.on('connect', () => { if(email) socket.emit('register_user', email); });
-socket.on('transaction_approved', (txId) => { alert(`✅ Deposit Approved! Balance will update automatically.`); });
 
-// 🔥 LIVE USERS & FAKE CHIPS
+socket.on('transaction_approved', (txId) => {
+    alert(`✅ Deposit Approved! Balance will update in a second.`);
+    // Force re-fetch from Firebase to get latest balance instantly
+    if(email && window.dbFuncs) {
+        const { doc, getDoc } = window.dbFuncs;
+        getDoc(doc(window.db, "users", email)).then(snap => {
+            if(snap.exists()){
+                balance = snap.data().balance;
+                updateUI();
+            }
+        });
+    }
+});
+
+// 🔥 3. LIVE USERS & FAKE CHIPS
 const fakeUsers = [
   { name: 'Rahul', avatar: 'https://i.pravatar.cc/100?img=1' }, { name: 'Priya', avatar: 'https://i.pravatar.cc/100?img=5' },
   { name: 'Amit', avatar: 'https://i.pravatar.cc/100?img=11' }, { name: 'Sneha', avatar: 'https://i.pravatar.cc/100?img=9' },
@@ -210,12 +226,16 @@ document.addEventListener('DOMContentLoaded', () => {
   setInterval(() => { document.querySelectorAll('.fake-chip').forEach(c => c.remove()); }, 20000);
 });
 
-// 🔥 GAME LOGIC
+// 🔥 4. GAME LOGIC
 const CHIPS=[10,50,100,500], ODDS={'2':27,'12':27,'3':13,'11':13,'4':9,'10':9,'5':7,'9':7,'6':6,'8':6,'down':2,'up':2,'seven':5};
 let currentChipIndex=0, userBets={}, isRolling=false, timerInterval, countdown=5, lastBet={};
 
 function updateUI(){ 
+    // 🔥 YE DONO BALANCE UPDATE KAREGA
     document.getElementById('balanceUI').textContent=balance.toLocaleString(); 
+    const bal2 = document.getElementById('balanceUI2');
+    if(bal2) bal2.textContent=balance.toLocaleString(); 
+    
     document.getElementById('chipValueUI').textContent=CHIPS[currentChipIndex]; 
     document.querySelectorAll('.chip-stack').forEach(el=>el.remove()); 
     for(const [zone,amt] of Object.entries(userBets)){ 
@@ -327,8 +347,7 @@ function showResult(type,amount){
 
 let audioCtx; function beep(freq,dur,type='sine',vol=0.1){ try{ if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)(); const o=audioCtx.createOscillator(),g=audioCtx.createGain(); o.type=type; o.frequency.value=freq; g.gain.setValueAtTime(vol,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur); o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+dur); }catch(e){} }
 function playWinSound(){ [523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,0.2,'triangle',0.1),i*100)); }
-window.onload=()=>{ for(let i=0;i<10;i++) addToHistory(7); updateBalance(); startGame(); };
-function updateBalance(){ document.getElementById('balanceUI').textContent=balance.toLocaleString(); }
+window.onload=()=>{ for(let i=0;i<10;i++) addToHistory(7); updateUI(); startGame(); };
 </script>
 </body>
 </html>
