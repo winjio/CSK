@@ -8,27 +8,16 @@ const path = require('path');
 
 const app = express();
 app.use(cors());
-
-// 🔥 1. STATIC FILES (HTML/CSS/JS serve karne ke liye)
 app.use(express.static(__dirname)); 
 
-// 🔥 2. EXPLICIT ROUTE FOR HOME PAGE
 app.get('/', (req, res) => {
-    const filePath = path.join(__dirname, 'index.html');
-    console.log("Looking for index.html at:", filePath); // Render logs me dikhega
-    
-    res.sendFile(filePath, (err) => {
-        if (err) {
-            console.error("Error sending file:", err);
-            res.status(500).send("Index.html not found. Please check folder structure.");
-        }
-    });
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
 
-// 🔥 TUMHARA FIREBASE SERVICE ACCOUNT (HARDCODED)
+// 🔥 FIREBASE ADMIN
 const serviceAccount = {
   "type": "service_account",
   "project_id": "comparex-cebd8",
@@ -37,31 +26,32 @@ const serviceAccount = {
   "client_email": "firebase-adminsdk-fbsvc@comparex-cebd8.iam.gserviceaccount.com",
   "client_id": "102259297259634447880",
   "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-  "token_uri": "https://oauth2.googleapis.com/token",
-  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40comparex-cebd8.iam.gserviceaccount.com",
-  "universe_domain": "googleapis.com"
+  "token_uri": "https://oauth2.googleapis.com/token"
 };
 
 admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
 const db = admin.firestore();
 
-const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || 'YOUR_BOT_TOKEN_HERE'; 
-const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID || 'YOUR_CHAT_ID_HERE'; 
-const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
+const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || 'YOUR_BOT_TOKEN'; 
+const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID || 'YOUR_CHAT_ID'; 
+
+// 🔥 BOT POLLING FIX (409 CONFLICT ERROR FIX)
+const bot = new TelegramBot(TELEGRAM_TOKEN);
+setTimeout(() => {
+    bot.deleteWebhook().then(() => {
+        bot.startPolling();
+        console.log("🤖 Telegram Bot Started!");
+    });
+}, 3000);
 
 const userSockets = {}; 
 
 io.on('connection', (socket) => {
     socket.on('register_user', (email) => { if(email) userSockets[email] = socket.id; });
-    socket.on('user_message', (data) => {
-        const telegramMsg = `👤 *User:* ${data.email}\n💬 *Message:* ${data.message}\n\n👉 Reply to answer back.`;
-        bot.sendMessage(ADMIN_CHAT_ID, telegramMsg, { parse_mode: 'Markdown' }).then((sentMsg) => {
-            bot.onReplyToMessage(ADMIN_CHAT_ID, sentMsg.message_id, (replyMsg) => { socket.emit('admin_reply', replyMsg.text); });
-        }).catch(err => console.log("TG Error:", err.message));
-    });
+
     socket.on('new_transaction', async (data) => {
         const { txId, type, amount, userId, userName, method, details } = data;
+        
         try {
             const userRef = db.collection('users').doc(userId);
             const userDoc = await userRef.get();
@@ -71,38 +61,49 @@ io.on('connection', (socket) => {
                 txs.unshift({ id: txId, type, amount, method, details, status: 'Pending', date: new Date().toLocaleString() });
                 await userRef.update({ transactions: txs });
             }
-        } catch(e) { console.log("Firestore Error:", e); }
-        const text = `🚨 *NEW ${type.toUpperCase()}* 🚨\n\n🆔 *Order ID:* \`${txId}\`\n👤 *User:* ${userId}\n💰 *Amount:* ₹${amount}\n` + (type === 'withdraw' ? `💳 *Method:* ${method}\n📝 *Details:* ${details}\n` : '') + `\n👇 Verify:`;
+        } catch(e) { console.log(e); }
+
+        const text = `🚨 *NEW ${type.toUpperCase()}* 🚨\n\n🆔 *Order ID:* \`${txId}\`\n👤 *User:* ${userId}\n💰 *Amount:* ₹${amount}\n\n👇 Verify:`;
         const keyboard = { reply_markup: { inline_keyboard: [[ { text: '✅ Approve', callback_data: `approve_${txId}_${userId}` }, { text: '❌ Reject', callback_data: `reject_${txId}_${userId}` } ]] } };
         bot.sendMessage(ADMIN_CHAT_ID, text, { parse_mode: 'Markdown', ...keyboard });
     });
 });
 
 bot.on('callback_query', async (query) => {
-    const data = query.data.split('_');
-    const action = data[0]; const txId = data[1]; const userId = data[2];
-    const userRef = db.collection('users').doc(userId);
-    const userDoc = await userRef.get();
-    if (!userDoc.exists) return;
-    let userData = userDoc.data();
-    let txs = userData.transactions || [];
-    const txIndex = txs.findIndex(t => t.id === txId);
-    if (txIndex === -1) return;
-    if(action === 'approve') {
-        txs[txIndex].status = 'Approved';
-        if (txs[txIndex].type === 'deposit') userData.balance += txs[txIndex].amount;
-        await userRef.update({ balance: userData.balance, transactions: txs });
-        bot.editMessageText(`✅ *APPROVED*\nOrder ID: \`${txId}\`\nUser: ${userId}`, { chat_id: query.message.chat.id, message_id: query.message.message_id, parse_mode: 'Markdown' });
-    } else {
-        txs[txIndex].status = 'Rejected';
-        if(txs[txIndex].type === 'withdraw') userData.balance += txs[txIndex].amount;
-        await userRef.update({ balance: userData.balance, transactions: txs });
-        bot.editMessageText(`❌ *REJECTED*\nOrder ID: \`${txId}\`\nUser: ${userId}`, { chat_id: query.message.chat.id, message_id: query.message.message_id, parse_mode: 'Markdown' });
-    }
-    const socketId = userSockets[userId];
-    if(socketId) io.to(socketId).emit(`transaction_${action}d`, txId);
-    bot.answerCallbackQuery(query.id);
+    const [action, txId, userId] = query.data.split('_');
+
+    try {
+        const userRef = db.collection('users').doc(userId);
+        const userDoc = await userRef.get();
+        if (!userDoc.exists) return;
+        
+        let userData = userDoc.data();
+        let txs = userData.transactions || [];
+        const txIndex = txs.findIndex(t => t.id === txId);
+        if (txIndex === -1) return;
+
+        if(action === 'approve') {
+            txs[txIndex].status = 'Approved';
+            if (txs[txIndex].type === 'deposit') {
+                userData.balance = Number(userData.balance) + Number(txs[txIndex].amount);
+            }
+            await userRef.update({ balance: userData.balance, transactions: txs });
+            
+            bot.editMessageText(`✅ *APPROVED*\nOrder ID: \`${txId}\``, { chat_id: query.message.chat.id, message_id: query.message.message_id, parse_mode: 'Markdown' });
+        } else {
+            txs[txIndex].status = 'Rejected';
+            if(txs[txIndex].type === 'withdraw') {
+                userData.balance = Number(userData.balance) + Number(txs[txIndex].amount);
+            }
+            await userRef.update({ balance: userData.balance, transactions: txs });
+            bot.editMessageText(`❌ *REJECTED*\nOrder ID: \`${txId}\``, { chat_id: query.message.chat.id, message_id: query.message.message_id, parse_mode: 'Markdown' });
+        }
+        
+        const socketId = userSockets[userId];
+        if(socketId) io.to(socketId).emit(`transaction_${action}d`, txId);
+        bot.answerCallbackQuery(query.id);
+    } catch(e) { console.log(e); }
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`🚀 Jiowin Server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
